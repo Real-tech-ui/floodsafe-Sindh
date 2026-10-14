@@ -36,7 +36,7 @@ input[type=range]{width:100%;accent-color:var(--ac)}
 </aside><div id="map"></div></main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
-const map=L.map('map').setView([27.705,68.855],13);
+const map=L.map('map').setView([27.705,68.855],14);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(map);
 // Sample data: z = [distance to river km, elevation m]; s = shelter
 const N={A:{n:'Barrage Colony',p:[27.689,68.872],z:[.4,56]},B:{n:'Riverside Katcha',p:[27.700,68.868],z:[.2,55]},
@@ -67,12 +67,13 @@ Object.keys(N).forEach(k=>{if(!N[k].z)return;const r=risk(k);
 L.circle(N[k].p,{radius:450,color:COL[r.lv],fillColor:COL[r.lv],fillOpacity:.35,weight:k===start?4:1.5})
 .bindPopup(`<b>${N[k].n}</b><br>Risk ${r.s.toFixed(2)} (${r.lv})<br>0.40×${r.pr.toFixed(2)} proximity<br>+ 0.25×${r.lo.toFixed(2)} low elevation<br>+ 0.35×${r.rn.toFixed(2)} rainfall`)
 .on('click',()=>{start=k;$('start').value=k;draw()}).addTo(layer)});
-E.forEach(([a,b])=>{const bl=blocked.has(key(a,b));
-L.polyline([N[a].p,N[b].p],{color:bl?'#e03131':'#888',weight:5,dashArray:bl?'6 8':null,opacity:.8})
+E.forEach(([a,b])=>{const bl=blocked.has(key(a,b)),pts=[N[a].p,N[b].p];
+L.polyline(pts,{color:bl?'#e03131':'#888',weight:5,dashArray:bl?'6 8':null,opacity:.8,interactive:false}).addTo(layer);
+L.polyline(pts,{color:'#000',weight:24,opacity:0}).bindTooltip((bl?'Unblock road: ':'Block road: ')+N[a].n+' – '+N[b].n,{sticky:true})
 .on('click',()=>{bl?blocked.delete(key(a,b)):blocked.add(key(a,b));draw()}).addTo(layer)});
 Object.keys(N).filter(k=>N[k].s).forEach(k=>L.circleMarker(N[k].p,{radius:9,color:'#fff',fillColor:'#3b82f6',fillOpacity:1,weight:2}).bindTooltip('Shelter: '+N[k].n+' (sample)').addTo(layer));
 const rt=route(),r=risk(start);
-if(rt){L.polyline(rt.path.map(k=>N[k].p),{color:'#2ecc71',weight:8,opacity:.95}).addTo(layer);
+if(rt){L.polyline(rt.path.map(k=>N[k].p),{color:'#2ecc71',weight:8,opacity:.95,interactive:false}).addTo(layer);
 $('route').innerHTML=`<b>Safest route</b> to ${N[rt.path.at(-1)].n}<br>${rt.path.map(k=>N[k].n).join(' → ')}<br><b>${rt.km.toFixed(1)} km</b> · ${blocked.size} road(s) blocked`}
 else $('route').innerHTML='<b style="color:#ff8a8a">No safe route available.</b> All paths to shelters are blocked.';
 const l=$('lang').value;$('msg').textContent=M[l][r.lv];$('msg').dir=l==='en'?'ltr':'rtl'}
