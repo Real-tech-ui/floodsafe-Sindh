@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FloodSafe Sindh | Flood Risk & Evacuation Planner</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#0b0b0f;--card:#14141b;--bd:#262631;--tx:#f2f2f5;--mut:#9a9aa8;--ac:#d7263d}
+*{box-sizing:border-box;margin:0}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--tx);height:100vh;display:flex;flex-direction:column}
+header{padding:10px 16px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+h1{font-size:1.05rem}h1 span{color:var(--ac)}
+.warn{font-size:.72rem;color:#ffb4bd;background:#2a1217;border:1px solid #5a1f2a;padding:4px 10px;border-radius:6px}
+main{flex:1;display:flex;min-height:0}
+aside{width:330px;padding:14px;border-right:1px solid var(--bd);overflow:auto;display:flex;flex-direction:column;gap:14px;background:var(--card)}
+#map{flex:1}
+label{font-size:.75rem;color:var(--mut);display:block;margin-bottom:4px}
+select,button{width:100%;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:8px;font:inherit;cursor:pointer}
+button:hover,select:hover{border-color:var(--ac)}
+input[type=range]{width:100%;accent-color:var(--ac)}
+.box{font-size:.8rem;line-height:1.55;background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 4px 0 8px}
+#msg{font-size:1rem;line-height:1.7}
+@media(max-width:760px){main{flex-direction:column}aside{width:100%;border-right:0;max-height:50vh}#map{min-height:50vh}}
+</style></head><body>
+<header><h1>Flood<span>Safe</span> Sindh <small style="color:var(--mut);font-weight:400">· Sukkur demo area</small></h1>
+<div class="warn">Prototype estimates using simulated sample data. Not official emergency instructions.</div></header>
+<main><aside>
+<div><label>Rainfall (mm / 24h): <b id="rv">0</b> <span id="live"></span></label><input type="range" id="rain" min="0" max="200" value="60"></div>
+<div><label>Your location</label><select id="start"></select></div>
+<div><label>Language</label><select id="lang"><option value="en">English</option><option value="ur">اردو</option><option value="sd">سنڌي</option></select></div>
+<div class="box" id="msg"></div>
+<div class="box" id="route"></div>
+<button id="reset">Clear blocked roads</button>
+<div class="box">Click a road to block/unblock it. Click a zone to set your location.<br>
+<span class="dot" style="background:#2ecc71;margin-left:0"></span>Low<span class="dot" style="background:#f5a623"></span>Medium<span class="dot" style="background:#e03131"></span>High<span class="dot" style="background:#3b82f6"></span>Shelter</div>
+<div class="box" style="color:var(--mut)"><b style="color:var(--tx)">Risk score</b> = 0.40 × river proximity + 0.25 × low elevation + 0.35 × rainfall. High ≥ 0.65, Medium ≥ 0.35. Zones, shelters and roads are sample data.</div>
+</aside><div id="map"></div></main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const map=L.map('map').setView([27.705,68.855],13);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(map);
+// Sample data: z = [distance to river km, elevation m]; s = shelter
+const N={A:{n:'Barrage Colony',p:[27.689,68.872],z:[.4,56]},B:{n:'Riverside Katcha',p:[27.700,68.868],z:[.2,55]},
+C:{n:'Old Sukkur',p:[27.706,68.862],z:[.8,58]},D:{n:'Minara Road',p:[27.712,68.857],z:[1.6,61]},G:{n:'City Center',p:[27.703,68.850],z:[2.6,64]},
+I:{n:'Station Rd Jn',p:[27.695,68.855]},K:{n:'Lloyd Rd Jn',p:[27.715,68.848]},E:{n:'Airport Rd Jn',p:[27.721,68.846]},
+F:{n:'Govt High School',p:[27.725,68.838],s:1},H:{n:'Community Hall',p:[27.708,68.834],s:1},J:{n:'Stadium',p:[27.692,68.838],s:1}};
+const E=[['A','B'],['B','C'],['C','D'],['D','K'],['K','E'],['E','F'],['C','G'],['G','I'],['I','A'],['G','H'],['I','J'],['J','H'],['G','K']];
+const M={en:{low:'Risk is currently low. Keep watching weather updates.',med:'Flood risk is medium. Stay prepared and follow official announcements.',high:'Flood risk is HIGH. Move to the nearest safe shelter now.'},
+ur:{low:'فی الحال خطرہ کم ہے۔ موسم کی اطلاعات دیکھتے رہیں۔',med:'سیلاب کا خطرہ درمیانہ ہے۔ تیار رہیں اور سرکاری اعلانات پر نظر رکھیں۔',high:'سیلاب کا خطرہ بہت زیادہ ہے۔ فوراً قریبی محفوظ پناہ گاہ کی طرف جائیں۔'},
+sd:{low:'هن وقت خطرو گهٽ آهي. موسم جي خبرن تي نظر رکو.',med:'ٻوڏ جو خطرو وچولو آهي. تيار رهو ۽ سرڪاري اطلاعن تي نظر رکو.',high:'ٻوڏ جو خطرو وڏو آهي. فوري طور تي ويجهي محفوظ پناهه گاهه ڏانهن وڃو.'}};
+const $=id=>document.getElementById(id);
+const blocked=new Set(),layer=L.layerGroup().addTo(map);let start='A';
+const hav=(a,b)=>{const r=x=>x*Math.PI/180,dl=r(b[0]-a[0]),dn=r(b[1]-a[1]);
+const h=Math.sin(dl/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dn/2)**2;return 12742*Math.asin(Math.sqrt(h))};
+const key=(a,b)=>[a,b].sort().join('');
+function risk(id){const [d,e]=N[id].z,rn=Math.min(+$('rain').value/150,1);
+const pr=1-Math.min(d/3,1),lo=1-Math.min(Math.max(e-55,0)/15,1);
+const s=.4*pr+.25*lo+.35*rn;return{s,pr,lo,rn,lv:s>=.65?'high':s>=.35?'med':'low'}}
+const COL={low:'#2ecc71',med:'#f5a623',high:'#e03131'};
+function route(){const dist={},prev={},todo=new Set(Object.keys(N));Object.keys(N).forEach(k=>dist[k]=Infinity);dist[start]=0;
+while(todo.size){let u=null;todo.forEach(k=>{if(u===null||dist[k]<dist[u])u=k});if(dist[u]===Infinity)break;todo.delete(u);
+E.forEach(([a,b])=>{if(blocked.has(key(a,b)))return;const v=a===u?b:b===u?a:null;if(!v)return;
+const w=dist[u]+hav(N[a].p,N[b].p);if(w<dist[v]){dist[v]=w;prev[v]=u}})}
+let best=null;Object.keys(N).filter(k=>N[k].s).forEach(k=>{if(dist[k]<(best?dist[best]:Infinity))best=k});
+if(!best)return null;const path=[best];while(path[0]!==start)path.unshift(prev[path[0]]);return{path,km:dist[best]}}
+function draw(){layer.clearLayers();$('rv').textContent=$('rain').value;
+Object.keys(N).forEach(k=>{if(!N[k].z)return;const r=risk(k);
+L.circle(N[k].p,{radius:450,color:COL[r.lv],fillColor:COL[r.lv],fillOpacity:.35,weight:k===start?4:1.5})
+.bindPopup(`<b>${N[k].n}</b><br>Risk ${r.s.toFixed(2)} (${r.lv})<br>0.40×${r.pr.toFixed(2)} proximity<br>+ 0.25×${r.lo.toFixed(2)} low elevation<br>+ 0.35×${r.rn.toFixed(2)} rainfall`)
+.on('click',()=>{start=k;$('start').value=k;draw()}).addTo(layer)});
+E.forEach(([a,b])=>{const bl=blocked.has(key(a,b));
+L.polyline([N[a].p,N[b].p],{color:bl?'#e03131':'#888',weight:5,dashArray:bl?'6 8':null,opacity:.8})
+.on('click',()=>{bl?blocked.delete(key(a,b)):blocked.add(key(a,b));draw()}).addTo(layer)});
+Object.keys(N).filter(k=>N[k].s).forEach(k=>L.circleMarker(N[k].p,{radius:9,color:'#fff',fillColor:'#3b82f6',fillOpacity:1,weight:2}).bindTooltip('Shelter: '+N[k].n+' (sample)').addTo(layer));
+const rt=route(),r=risk(start);
+if(rt){L.polyline(rt.path.map(k=>N[k].p),{color:'#2ecc71',weight:8,opacity:.95}).addTo(layer);
+$('route').innerHTML=`<b>Safest route</b> to ${N[rt.path.at(-1)].n}<br>${rt.path.map(k=>N[k].n).join(' → ')}<br><b>${rt.km.toFixed(1)} km</b> · ${blocked.size} road(s) blocked`}
+else $('route').innerHTML='<b style="color:#ff8a8a">No safe route available.</b> All paths to shelters are blocked.';
+const l=$('lang').value;$('msg').textContent=M[l][r.lv];$('msg').dir=l==='en'?'ltr':'rtl'}
+Object.keys(N).filter(k=>N[k].z).forEach(k=>$('start').add(new Option(N[k].n,k)));
+$('start').onchange=e=>{start=e.target.value;draw()};$('rain').oninput=draw;$('lang').onchange=draw;
+$('reset').onclick=()=>{blocked.clear();draw()};
+draw();
+// Optional: prefill with real forecast rainfall for Sukkur (silently skipped if offline)
+fetch('https://api.open-meteo.com/v1/forecast?latitude=27.7&longitude=68.86&daily=precipitation_sum&forecast_days=1')
+.then(r=>r.json()).then(d=>{const p=d.daily.precipitation_sum[0];if(typeof p==='number'){$('rain').value=Math.min(Math.round(p),200);$('live').textContent='(live forecast, adjustable)';draw()}}).catch(()=>{});
+</script></body></html>
