@@ -1,70 +1,84 @@
 # FloodSafe Sindh
 
-**Flood Risk and Evacuation Planner** | OpenHack'26 | Category: Climate & Disaster Resilience (CL-01)
+**Flood Risk and Evacuation Planner** | OpenHack'26 | Category: Climate & Disaster Resilience
 
 **Live demo:** https://floodsafe-sindh.babbsbs126.workers.dev
-**Source:** https://github.com/Real-tech-ui/floodsafe-Sindh
+**Source code:** https://github.com/Real-tech-ui/floodsafe-Sindh
 
 > **Prototype notice:** This project uses simulated sample data. Risk scores and routes are model estimates, not official warnings or emergency instructions.
 
-## Problem
+## Problem Statement
 
-Communities along the Indus in Sindh were hit hard by the 2022 floods. Residents often lack simple, local information about which areas are at risk, where the nearest shelter is, and which route to take when a road is cut off.
+**CL-01: Flood Risk and Evacuation Planner.** Communities near rivers and flood-prone settlements may lack accessible information about local hazards, nearby shelters and possible evacuation routes. Sindh was among the worst-hit regions in the 2022 floods.
 
-## Solution
+## Our Solution
 
-FloodSafe is a map-based decision-support tool that shows flood risk by neighbourhood, lists nearby shelters, and recommends the safest evacuation route, rerouting automatically when roads are blocked. Safety messages are available in English, Urdu and Sindhi.
+A map-based decision-support tool that shows flood risk by neighbourhood, lists nearby shelters, and recommends the safest evacuation route. When a road is blocked, the route recalculates automatically. Safety messages are available in English, Urdu and Sindhi.
 
-## Features (CL-01 MVP)
+## Key Features
 
 - Interactive map of the demo area (Sukkur) with colour-coded risk zones
-- Transparent, documented risk scoring (see below), with a per-zone breakdown on click
-- Rainfall slider to simulate different conditions; pre-filled from a live forecast when available
-- Shelter locations and the safest route to the nearest shelter
-- Click any road to block or unblock it; the route recalculates instantly
+- Transparent risk scoring with a per-zone breakdown shown on click
+- Rainfall slider to simulate conditions, pre-filled from a live forecast when available
+- Shelter locations and the safest route to the nearest reachable shelter
+- Click any road to block or unblock it; the route updates instantly
 - Safety messages in English, Urdu and Sindhi that change with the risk level
 
-## How the risk score works
+## How the Risk Score Works
 
 ```
-risk = 0.40 × proximity + 0.25 × low_elevation + 0.35 × rainfall
+risk = 0.40 x proximity + 0.25 x low_elevation + 0.35 x rainfall
 
-proximity     = 1 − min(distance_to_river_km / 3, 1)
-low_elevation = 1 − min(max(elevation_m − 55, 0) / 15, 1)
+proximity     = 1 - min(distance_to_river_km / 3, 1)
+low_elevation = 1 - min(max(elevation_m - 55, 0) / 15, 1)
 rainfall      = min(rain_mm_24h / 150, 1)
 
-High: risk ≥ 0.65   Medium: risk ≥ 0.35   Low: otherwise
+High: risk >= 0.65   Medium: risk >= 0.35   Low: otherwise
 ```
 
-The weights and thresholds are documented assumptions for demonstration. They are not calibrated hydrological values.
+Weights and thresholds are documented assumptions for demonstration, not calibrated hydrological values.
 
-## Evacuation routing
+**Routing:** roads are a small graph; blocked roads are removed and Dijkstra's shortest-path algorithm finds the nearest reachable shelter by road distance. If every path is blocked, the app says so.
 
-Roads are modelled as a small graph. Blocked roads are removed, and Dijkstra's shortest-path algorithm finds the nearest reachable shelter by road distance. If every path is blocked, the app says so instead of guessing.
+## Technologies
 
-## Tech
+HTML, CSS and JavaScript (single file, no build step), Leaflet for the map, OpenStreetMap tiles, Open-Meteo forecast API for optional live rainfall, deployed on Cloudflare Workers, source on GitHub.
 
-HTML, CSS and JavaScript in a single file, [Leaflet](https://leafletjs.com) with OpenStreetMap tiles, and the Open-Meteo forecast API for optional live rainfall. No build step and no API keys. Deployed on Cloudflare Workers.
+## Challenges
 
-## Run locally
+- **Data availability:** verified shelter and flood-zone data was not available in machine-readable form within 24 hours, so we used clearly labelled sample data.
+- **Routing around blocked roads:** we modelled a simplified road graph so rerouting could be demonstrated and explained reliably.
+- **Multilingual safety messages:** Urdu and Sindhi text needs review by native speakers before real-world use.
 
-Open `index.html` in a browser (or use the VS Code Live Server extension). An internet connection is needed for map tiles and the optional forecast.
+## AI & Open-Source Disclosure
 
-## Data, limits and safety
+```
+AI Tools / Models:
+- Claude (Anthropic): used to generate and refine the application code and documentation.
+  The team tested, deployed and can explain the implementation.
+
+Open-Source Technologies and External Services:
+- Leaflet (map library)
+- OpenStreetMap (map tiles and data)
+- Open-Meteo (weather forecast API)
+- Cloudflare Workers (hosting), GitHub (source hosting)
+```
+
+## Data, Limits and Safety
 
 - Zones, shelters, elevations and road links are **sample data** with approximate coordinates.
 - Risk scoring is a transparent rule-based model, not a flood forecast.
-- Urdu and Sindhi messages need review by native speakers before real use.
 - Not a substitute for official warnings from PDMA, NDMA or local authorities.
 
 ## Roadmap
 
-- Replace sample data with verified PDMA/NDMA shelter and flood-zone data
-- Integrate official flood-warning feeds and river-discharge data
-- Add shelter capacity and live occupancy
-- Let residents report blocked roads
-- Native-speaker review of all translations
+Verified PDMA/NDMA shelter data, official flood-warning feeds, shelter capacity, community reporting of blocked roads, native-speaker review of translations.
 
 ## Team
 
-Ali Huzaifa, BS IT student. Built with AI assistance (Claude, by Anthropic) for code and documentation.
+**Team name:** <REGISTERED TEAM NAME>
+
+| Member | Contribution |
+| ------ | ------------ |
+| <Member 1 name> | <what they did> |
+| <Member 2 name> | <what they did> |
