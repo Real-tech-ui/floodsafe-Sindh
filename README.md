@@ -74,11 +74,8 @@ Open-Source Technologies and External Services:
 
 Verified PDMA/NDMA shelter data, official flood-warning feeds, shelter capacity, community reporting of blocked roads, native-speaker review of translations.
 
-## Team
+   **Team name:** TEAM ZEROX
 
-**Team name:** <REGISTERED TEAM NAME>
-
-| Member | Contribution |
-| ------ | ------------ |
-| <Member 1 name> | <what they did> |
-| <Member 2 name> | <what they did> |
+   | Member | Contribution |
+   | ------ | ------------ |
+   | Ali Huzaifa | Chose the problem, directed the project, tested and deployed it |
